@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DailyMe — Habit Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <!--AUTH SCREEN -->
+  <div id="auth-screen">
+    <div class="auth-card" id="auth-card">
+      <div class="auth-logo">
+        <span class="logo-mark"> <img src="./dailymelogo.png"  alt="DailyMe Logo" width="50px"></span>
+        <span class="logo-text">DailyMe</span>
+      </div>
+      <p class="auth-tagline" id="auth-tagline">Welcome back. Keep the streak alive.</p>
+
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Sign In</button>
+        <button class="tab-btn"        id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+
+      <div class="field-group">
+        <div class="field" id="field-name" style="display:none">
+          <label for="inp-name">Full Name</label>
+          <input type="text" id="inp-name" placeholder="Olufunke Solanke" />
+        </div>
+        <div class="field">
+          <label for="inp-email">Email</label>
+          <input type="email" id="inp-email" placeholder="you@example.com" onkeydown="enterSubmit(event)" />
+        </div>
+        <div class="field">
+          <label for="inp-password">Password</label>
+          <input type="password" id="inp-password" placeholder="••••••••" onkeydown="enterSubmit(event)" />
+        </div>
+      </div>
+
+      <p class="error-msg" id="auth-error"></p>
+      <button class="primary-btn" id="auth-submit-btn" onclick="handleAuth()">Enter</button>
+    </div>
+  </div>
+
+  <!--APP SCREEN -->
+  <div id="app-screen">
+
+    <header class="app-header">
+      <div class="auth-logo" style="justify-content:flex-start; margin-bottom:0">
+        <span class="logo-mark" style="font-size:22px"><img src="./dailymelogo.png" alt="DailyMe Logo" width="50px"></span>
+        <span class="logo-text" style="color:#1a1208; font-size:20px">DailyMe</span>
+      </div>
+      <div class="header-right">
+        <span class="user-name" id="user-greeting"></span>
+        <button class="logout-btn" onclick="handleLogout()">Sign out</button>
+      </div>
+    </header>
+
+    <main class="app-main">
+
+      <!-- stats -->
+      <div class="stats-row">
+        <div class="stat">
+          <span class="stat-num" id="stat-total">0</span>
+          <span class="stat-lbl">Habits</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-num" id="stat-done">0</span>
+          <span class="stat-lbl">Done Today</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-num" id="stat-streak">0</span>
+          <span class="stat-lbl">Total Streak Days</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-num" id="stat-rate">0%</span>
+          <span class="stat-lbl">Today's Rate</span>
+        </div>
+      </div>
+
+      <!-- overall progress bar -->
+      <div class="overall-bar">
+        <div class="overall-fill" id="overall-fill"></div>
+      </div>
+
+      <!-- toolbar -->
+      <div class="toolbar">
+        <div class="view-tabs">
+          <button class="view-tab active" id="vtab-today" onclick="switchView('today')">Today</button>
+          <button class="view-tab"        id="vtab-all"   onclick="switchView('all')">All Habits</button>
+        </div>
+        <button class="add-btn" onclick="openModal()">+ Add Habit</button>
+      </div>
+
+      <!-- habits -->
+      <div id="habit-list"></div>
+
+    </main>
+  </div>
+
+  <!-- HABIT MODAL -->
+  <div class="modal-overlay" id="modal-overlay" onclick="overlayClick(event)">
+    <div class="modal">
+      <h3 class="modal-title">New Habit</h3>
+      <input class="modal-input" id="habit-name-inp" placeholder="e.g. Read for 20 minutes" onkeydown="if(event.key==='Enter') addHabit()" />
+
+      <p class="color-label">Choose a colour</p>
+      <div class="color-row" id="color-row"></div>
+
+      <div class="modal-actions">
+        <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+        <button class="modal-add-btn" onclick="addHabit()">Add Habit</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
