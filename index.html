@@ -53,6 +53,7 @@
       </div>
       <div class="header-right">
         <span class="user-name" id="user-greeting"></span>
+	      <button class="bell-btn" id="bell-btn" onclick="toggleNotifications()" title="Toggle daily reminder">🔔</button>
         <button class="logout-btn" onclick="handleLogout()">Sign out</button>
       </div>
     </header>
@@ -114,6 +115,26 @@
       <div class="modal-actions">
         <button class="cancel-btn" onclick="closeModal()">Cancel</button>
         <button class="modal-add-btn" onclick="addHabit()">Add Habit</button>
+      </div>
+    </div>
+  </div>
+
+ <!-- toast notification -->
+  <div class="toast" id="toast">
+    <span id="toast-icon">🔔</span>
+    <span id="toast-msg">Reminder set!</span>
+  </div>
+
+    <!-- notification time modal -->
+  <div class="notif-modal-overlay" id="notif-modal-overlay" onclick="notifOverlayClick(event)">
+    <div class="notif-modal">
+      <p class="notif-modal-title">Set Daily Reminder</p>
+      <p class="notif-modal-desc">Pick the time you want DailyMe to remind you to check in on your habits.</p>
+      <p class="time-label">Reminder Time</p>
+      <input type="time" class="time-input" id="notif-time-inp" value="20:00" />
+      <div class="notif-actions">
+        <button class="cancel-btn" onclick="closeNotifModal()">Cancel</button>
+        <button class="modal-add-btn" onclick="confirmNotifTime()">Enable Reminders</button>
       </div>
     </div>
   </div>
