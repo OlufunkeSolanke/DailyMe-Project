@@ -8,16 +8,20 @@ const COLORS = [
 ];
 const DAY_NAMES = ['S','M','T','W','T','F','S'];
 
-
 let currentUser  = null;
 let habits       = [];
 let authMode     = 'login';
 let currentView  = 'today';
 let selectedColor = COLORS[0];
-let toastTimer   = null; // Declared toastTimer
+let toastTimer   = null;
+let notifEnabled  = false;
+let reminderTimer = null;
 
-/* Date Helpers */
-function todayStr() { return new Date().toISOString().split('T')[0]; }
+// Global Time Reference (resets at midnight)
+const today = new Date().toISOString().split('T')[0];
+
+/* DATE */
+function todayStr() { return today; }
 
 function daysAgo(n) {
   const d = new Date();
@@ -32,11 +36,22 @@ function weekDays() {
   }));
 }
 
-function calcStreak(completions) {
+function calcStreak(habit) {
   let streak = 0;
-  let check  = todayStr();
-  while (completions.includes(check)) {
-    streak++;
+  let check = todayStr();
+  const completions = habit.completions || [];
+  const skips = habit.skips || [];
+
+  if (!completions.includes(check) && !skips.includes(check)) {
+    const d = new Date(check + 'T12:00:00');
+    d.setDate(d.getDate() - 1);
+    check = d.toISOString().split('T')[0];
+  }
+
+  while (completions.includes(check) || skips.includes(check)) {
+    if (completions.includes(check)) {
+      streak++;
+    }
     const d = new Date(check + 'T12:00:00');
     d.setDate(d.getDate() - 1);
     check = d.toISOString().split('T')[0];
@@ -44,7 +59,7 @@ function calcStreak(completions) {
   return streak;
 }
 
-/* localStorage  */
+/*LOCAL STORAGE */
 const getUsers   = ()      => JSON.parse(localStorage.getItem('dm_users')          || '{}');
 const saveUsers  = u       => localStorage.setItem('dm_users', JSON.stringify(u));
 const getHabits  = uid     => JSON.parse(localStorage.getItem(`dm_habits_${uid}`)  || '[]');
@@ -53,7 +68,7 @@ const getSession = ()      => { try { return JSON.parse(localStorage.getItem('dm
 const setSession = u       => localStorage.setItem('dm_session', JSON.stringify(u));
 const clearSession=()      => localStorage.removeItem('dm_session');
 
-/* AUTH */
+/* AUTHENTICATION MODULE */
 function switchTab(mode) {
   authMode = mode;
   document.getElementById('tab-login').classList.toggle('active',  mode === 'login');
@@ -70,7 +85,7 @@ function enterSubmit(e) { if (e.key === 'Enter') handleAuth(); }
 function triggerShake() {
   const c = document.getElementById('auth-card');
   c.classList.remove('shake');
-  void c.offsetWidth; // reflow
+  void c.offsetWidth; // Force Layout Reflow Sequence
   c.classList.add('shake');
   setTimeout(() => c.classList.remove('shake'), 600);
 }
@@ -85,16 +100,20 @@ function handleAuth() {
   const email    = document.getElementById('inp-email').value.trim().toLowerCase();
   const password = document.getElementById('inp-password').value;
   const users    = getUsers();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (authMode === 'signup') {
     if (!name || !email || !password)       { setError('All fields are required.'); return triggerShake(); }
+    if (!emailRegex.test(email))            { setError('Please enter a valid email address.'); return triggerShake(); }
     if (password.length < 6)                { setError('Password must be at least 6 characters.'); return triggerShake(); }
     if (users[email])                       { setError('An account with this email already exists.'); return triggerShake(); }
+    
     const uid = `${Date.now()}`;
     users[email] = { uid, name, email, password };
     saveUsers(users);
     loginUser({ uid, name, email });
   } else {
+    if (!emailRegex.test(email))            { setError('Please enter a valid email address.'); return triggerShake(); }
     const user = users[email];
     if (!user || user.password !== password) { setError('Invalid email or password.'); return triggerShake(); }
     loginUser(user);
@@ -125,7 +144,7 @@ function handleLogout() {
   switchTab('login');
 }
 
-/* HABIT LOGIC */
+/* CORE HABITS LOGIC */
 function persist() { saveHabits(currentUser.uid, habits); }
 
 function toggleHabit(id) {
@@ -136,15 +155,47 @@ function toggleHabit(id) {
     h.completions = h.completions.filter(d => d !== t);
   } else {
     h.completions.push(t);
+    // Auto-remove skip record if they mark it complete later
+    if (h.skips) h.skips = h.skips.filter(d => d !== t);
   }
   persist();
   renderAll();
 }
 
+function toggleSkip(id) {
+  const h = habits.find(x => x.id === id);
+  if (!h) return;
+  const t = todayStr();
+  if (!h.skips) h.skips = [];
+  
+  if (h.skips.includes(t)) {
+    h.skips = h.skips.filter(d => d !== t);
+  } else {
+    h.completions = h.completions.filter(d => d !== t);
+    h.skips.push(t);
+  }
+  persist();
+  renderAll();
+}
+
+function archiveHabit(id) {
+  const h = habits.find(x => x.id === id);
+  if (h && confirm(`Archive "${h.name}"? It will be hidden from view.`)) {
+    h.isArchived = true;
+    persist();
+    renderAll();
+  }
+}
+
 function resetStreak(id) {
   if (!confirm('Reset this streak? Completion history will be cleared.')) return;
   const h = habits.find(x => x.id === id);
-  if (h) { h.completions = []; persist(); renderAll(); }
+  if (h) { 
+    h.completions = []; 
+    h.skips = [];
+    persist(); 
+    renderAll(); 
+  }
 }
 
 function deleteHabit(id) {
@@ -156,12 +207,18 @@ function deleteHabit(id) {
 
 function addHabit() {
   const name = document.getElementById('habit-name-inp').value.trim();
+  const category = document.getElementById('habit-cat-inp').value.trim() || 'General';
+
   if (!name) return;
+  
   habits.push({
     id: `${Date.now()}`,
     name,
     color: selectedColor,
     completions: [],
+    skips: [], 
+    isArchived: false,
+    category,
     createdAt: todayStr(),
   });
   persist();
@@ -169,7 +226,7 @@ function addHabit() {
   closeModal();
 }
 
-/* VIEW / RENDER */
+/* RENDERING ENGINES */
 function switchView(v) {
   currentView = v;
   document.getElementById('vtab-today').classList.toggle('active', v === 'today');
@@ -185,7 +242,7 @@ function renderAll() {
 function renderStats() {
   const today        = todayStr();
   const doneToday    = habits.filter(h => h.completions.includes(today));
-  const totalStreak  = habits.reduce((s, h) => s + calcStreak(h.completions), 0);
+  const totalStreak  = habits.reduce((s, h) => s + calcStreak(h), 0);
   const rate         = habits.length ? Math.round((doneToday.length / habits.length) * 100) : 0;
 
   document.getElementById('stat-total').textContent  = habits.length;
@@ -196,13 +253,15 @@ function renderStats() {
 }
 
 function renderHabits() {
-  const list    = document.getElementById('habit-list');
-  const today   = todayStr();
+  const list = document.getElementById('habit-list');
+  const today = todayStr();
+  const activeHabits = habits.filter(h => !h.isArchived);
+  
   const filtered = currentView === 'today'
-    ? habits.filter(h => !h.completions.includes(today))
-    : habits;
+    ? activeHabits.filter(h => !h.completions.includes(today))
+    : activeHabits;
 
-  if (habits.length === 0) {
+  if (activeHabits.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
         <span class="empty-icon">◈</span>
@@ -228,17 +287,22 @@ function renderHabits() {
 function buildCard(h, index) {
   const today      = todayStr();
   const doneToday  = h.completions.includes(today);
-  const streak     = calcStreak(h.completions);
+  const streak     = calcStreak(h);
   const progress   = Math.min((streak / 21) * 100, 100);
   const week       = weekDays();
-  const cardBg     = doneToday ? h.color.bg : '#ffffff';
+  const cardBg     = doneToday ? h.color.bg : 'var(--white)';
   const delay      = index * 60;
 
   const weekHtml = week.map(({ date, label }) => {
-    const done = h.completions.includes(date);
+    const done = (h.completions || []).includes(date);
+    const skipped = (h.skips || []).includes(date);
+    let dotBg = 'var(--border)';
+    if (done) dotBg = h.color.dot;
+    if (skipped) dotBg = 'repeating-linear-gradient(45deg, #706040, #706040 2px, var(--border) 2px, var(--border) 4px)';
+
     return `
       <div class="day-cell">
-        <div class="day-dot" style="background:${done ? h.color.dot : 'var(--border)'}"></div>
+        <div class="day-dot" style="background:${dotBg}"></div>
         <span class="day-label">${label}</span>
       </div>`;
   }).join('');
@@ -253,6 +317,9 @@ function buildCard(h, index) {
           <div>
             <p class="habit-name">${escHtml(h.name)}</p>
             <p class="habit-meta">
+              <span class="cat-tag" style="background: ${h.color.bg}; color: ${h.color.dot}; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 10.5px; text-transform: uppercase;">
+              ${escHtml(h.category || 'General')}
+              </span>
               ${streak > 0 ? `🔥 ${streak} day streak` : 'No active streak'}
               ${doneToday ? '<span class="done-badge">Done today</span>' : ''}
             </p>
@@ -276,7 +343,11 @@ function buildCard(h, index) {
       <p class="progress-lbl">${streak}/21 days to milestone</p>
 
       <div class="card-footer">
-        <button class="text-btn"        onclick="resetStreak('${h.id}')">Reset streak</button>
+        <button class="text-btn" onclick="toggleSkip('${h.id}')">
+          ${h.skips && h.skips.includes(todayStr()) ? '🚫 Unskip Day' : '⏳ Skip Day'}
+        </button>
+        <button class="text-btn" onclick="archiveHabit('${h.id}')">📦 Archive</button>
+        <button class="text-btn" onclick="resetStreak('${h.id}')">Reset</button>
         <button class="text-btn danger" onclick="deleteHabit('${h.id}')">Delete</button>
       </div>
     </div>`;
@@ -286,9 +357,19 @@ function escHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-/* MODAL */
+/* MODALS & SWITCHERS */
 function openModal() {
   document.getElementById('habit-name-inp').value = '';
+  const catInp = document.getElementById('habit-cat-inp');
+  catInp.value = '';
+
+  catInp.onfocus = function () {
+    catInp.setAttribute('placeholder', '');
+  };
+  catInp.onblur = function () {
+    catInp.setAttribute('placeholder', 'Select or type a category...');
+  };
+  
   selectedColor = COLORS[0];
   renderColorPicker();
   document.getElementById('modal-overlay').classList.add('open');
@@ -318,10 +399,33 @@ function pickColor(name) {
   renderColorPicker();
 }
 
-/* NOTIFICATIONS */
-let notifEnabled  = false;
-let reminderTimer = null;
+function handleCategoryColorMap() {
+  const catInp = document.getElementById('habit-cat-inp');
+  if(!catInp) return;
+  
+  catInp.addEventListener('input', (e) => {
+    const val = e.target.value.trim();
+    let targetColorName = 'amber'; 
+    
+    if (val === 'Health') targetColorName = 'sage';
+    if (val === 'Business') targetColorName = 'amber';
+    if (val === 'Mindset') targetColorName = 'violet';
+    
+    const matched = COLORS.find(c => c.name === targetColorName);
+    if (matched) {
+      selectedColor = matched;
+      renderColorPicker();
+    }
+  });
+}
 
+function toggleTheme() {
+  document.body.classList.toggle('dark-theme');
+  const isDark = document.body.classList.contains('dark-theme');
+  localStorage.setItem('dm_theme', isDark ? 'dark' : 'light');
+}
+
+/* SYSTEM NOTIFICATIONS ENGINE (WEB PUSH API) */
 function getSavedTime() {
   return localStorage.getItem('dm_notif_time') || '20:00';
 }
@@ -384,7 +488,7 @@ function formatTime(time24) {
   const ampm = h >= 12 ? 'PM' : 'AM';
   const h12  = h % 12 || 12;
   return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
-} // Fixed missing closing bracket here
+}
 
 function scheduleReminder() {
   if(reminderTimer) clearTimeout(reminderTimer);
@@ -397,13 +501,13 @@ function scheduleReminder() {
 
 function fireReminder() {
   if(!notifEnabled||Notification.permission!=='granted') return;
-  var t=todayStr(), pending=habits.filter(function(h){return h.completions.indexOf(t)===-1;});
+  var t=todayStr(), pending=habits.filter(function(h){return h.completions.indexOf(t)===-1 && !h.isArchived;});
   if(!pending.length) return;
   var body=pending.length===1?'Don\'t forget: "'+pending[0].name+'"':'You have '+pending.length+' habits left for today';
   new Notification('DailyMe — Daily Check-in', {body:body});
 }
 
-/* TOAST */
+/* UI TOAST SYSTEMS */
 function showToast(icon, msg) {
   document.getElementById('toast-icon').innerHTML=icon;
   document.getElementById('toast-msg').textContent=msg;
@@ -413,11 +517,15 @@ function showToast(icon, msg) {
   toastTimer=setTimeout(function(){t.classList.remove('show');},3500);
 }
 
-/* INIT */
+/* SYSTEM CORE INITIALIZER */
 (function init() {
   const session = getSession();
   if (session) {
     loginUser(session);
   }
   renderColorPicker();
+  handleCategoryColorMap();
+  if (localStorage.getItem('dm_theme') === 'dark') {
+    document.body.classList.add('dark-theme');
+  }
 })();

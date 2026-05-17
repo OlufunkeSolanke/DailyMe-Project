@@ -9,7 +9,6 @@
 </head>
 <body>
 
-  <!--AUTH SCREEN -->
   <div id="auth-screen">
     <div class="auth-card" id="auth-card">
       <div class="auth-logo">
@@ -43,7 +42,6 @@
     </div>
   </div>
 
-  <!--APP SCREEN -->
   <div id="app-screen">
 
     <header class="app-header">
@@ -52,15 +50,15 @@
         <span class="logo-text" style="color:#1a1208; font-size:20px">DailyMe</span>
       </div>
       <div class="header-right">
+        <button class="bell-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌓</button>
         <span class="user-name" id="user-greeting"></span>
-	      <button class="bell-btn" id="bell-btn" onclick="toggleNotifications()" title="Toggle daily reminder">🔔</button>
+        <button class="bell-btn" id="bell-btn" onclick="toggleNotifications()" title="Toggle daily reminder">🔔</button>
         <button class="logout-btn" onclick="handleLogout()">Sign out</button>
       </div>
     </header>
 
     <main class="app-main">
 
-      <!-- stats -->
       <div class="stats-row">
         <div class="stat">
           <span class="stat-num" id="stat-total">0</span>
@@ -83,12 +81,10 @@
         </div>
       </div>
 
-      <!-- overall progress bar -->
       <div class="overall-bar">
         <div class="overall-fill" id="overall-fill"></div>
       </div>
 
-      <!-- toolbar -->
       <div class="toolbar">
         <div class="view-tabs">
           <button class="view-tab active" id="vtab-today" onclick="switchView('today')">Today</button>
@@ -97,17 +93,24 @@
         <button class="add-btn" onclick="openModal()">+ Add Habit</button>
       </div>
 
-      <!-- habits -->
       <div id="habit-list"></div>
 
     </main>
   </div>
 
-  <!-- HABIT MODAL -->
   <div class="modal-overlay" id="modal-overlay" onclick="overlayClick(event)">
     <div class="modal">
       <h3 class="modal-title">New Habit</h3>
       <input class="modal-input" id="habit-name-inp" placeholder="e.g. Read for 20 minutes" onkeydown="if(event.key==='Enter') addHabit()" />
+
+      <p class="color-label">Category</p>
+      <input class="modal-input" id="habit-cat-inp" list="category-options" placeholder="Select or type a category..." />
+      <datalist id="category-options">
+        <option value="General">📦 General</option>
+        <option value="Health">🍏 Health & Wellness</option>
+        <option value="Business">💼 Business & Career</option>
+        <option value="Mindset">🧠 Mindset & Rituals</option>
+      </datalist>
 
       <p class="color-label">Choose a colour</p>
       <div class="color-row" id="color-row"></div>
@@ -119,20 +122,19 @@
     </div>
   </div>
 
- <!-- toast notification -->
   <div class="toast" id="toast">
     <span id="toast-icon">🔔</span>
     <span id="toast-msg">Reminder set!</span>
   </div>
 
-    <!-- notification time modal -->
   <div class="notif-modal-overlay" id="notif-modal-overlay" onclick="notifOverlayClick(event)">
     <div class="notif-modal">
       <p class="notif-modal-title">Set Daily Reminder</p>
       <p class="notif-modal-desc">Pick the time you want DailyMe to remind you to check in on your habits.</p>
       <p class="time-label">Reminder Time</p>
       <input type="time" class="time-input" id="notif-time-inp" value="20:00" />
-      <div class="notif-actions">
+      
+      <div class="modal-actions">
         <button class="cancel-btn" onclick="closeNotifModal()">Cancel</button>
         <button class="modal-add-btn" onclick="confirmNotifTime()">Enable Reminders</button>
       </div>
