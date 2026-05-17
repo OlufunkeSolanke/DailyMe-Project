@@ -37,12 +37,10 @@ Simply double-click the index.html file to open it instantly inside any modern w
 ├── script.js        # Core logic engine, authentication module, and storage handlers
 └── dailymelogo.png   # Native application branding asset
 
+
 ## 📜 License
 
 All Rights Reserved. This project is proprietary intellectual property. Unauthorized copying, modification, or distribution of this file is strictly prohibited.
-
-<<<<<<< HEAD
+ 
 Created with focus and precision by Olufunke Solanke — Lead Developer & Architect at Frids Legal.
-=======
 Created with focus and precision by Olufunke Solanke — Lead Developer & Architect at Frids Legal.
->>>>>>> b5892600029d7d4a8f904a9b5c65af9218d40d77
