@@ -288,15 +288,25 @@ body {
 .add-btn:active { transform: translateY(0); }
 
 /* habits list */
-#habit-list { display: flex; flex-direction: column; gap: 14px; }
+#habit-list { 
+  display: flex !important; 
+  flex-direction: column !important; 
+  gap: 16px !important; 
+  position: relative !important;
+  width: 100% !important;
+}
 
 /* habit card */
 .habit-card {
+  display: block !important;
+  position: relative !important;
   background: var(--white);
   border-radius: 16px;
   padding: 18px 20px;
   box-shadow: 0 2px 12px var(--shadow);
   border-left: 4px solid #ccc;
+  width: 100% !important;
+  margin: 0 0 4px 0 !important;
   animation: fadeUp 0.35s ease both;
   transition: background 0.3s;
 }

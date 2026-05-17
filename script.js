@@ -17,7 +17,7 @@ let toastTimer   = null;
 let notifEnabled  = false;
 let reminderTimer = null;
 
-// Global Time Reference (resets at midnight)
+// Global Time Reference 
 const today = new Date().toISOString().split('T')[0];
 
 /* DATE */
@@ -155,7 +155,6 @@ function toggleHabit(id) {
     h.completions = h.completions.filter(d => d !== t);
   } else {
     h.completions.push(t);
-    // Auto-remove skip record if they mark it complete later
     if (h.skips) h.skips = h.skips.filter(d => d !== t);
   }
   persist();
@@ -184,6 +183,16 @@ function archiveHabit(id) {
     h.isArchived = true;
     persist();
     renderAll();
+  }
+}
+
+function unarchiveHabit(id) {
+  const h = habits.find(x => x.id === id);
+  if (h) {
+    h.isArchived = false; 
+    persist();            
+    renderAll();          
+    showToast('📦', `"${h.name}" restored to active tracking!`);
   }
 }
 
@@ -231,6 +240,7 @@ function switchView(v) {
   currentView = v;
   document.getElementById('vtab-today').classList.toggle('active', v === 'today');
   document.getElementById('vtab-all').classList.toggle('active',   v === 'all');
+  document.getElementById('vtab-archived').classList.toggle('active', v === 'archived');
   renderHabits();
 }
 
@@ -255,28 +265,45 @@ function renderStats() {
 function renderHabits() {
   const list = document.getElementById('habit-list');
   const today = todayStr();
-  const activeHabits = habits.filter(h => !h.isArchived);
-  
-  const filtered = currentView === 'today'
-    ? activeHabits.filter(h => !h.completions.includes(today))
-    : activeHabits;
 
-  if (activeHabits.length === 0) {
+  const activeHabits = habits.filter(h => !h.isArchived);
+  const archivedHabits = habits.filter(h => h.isArchived);
+  
+  let filtered = [];
+  if (currentView === 'today') {
+    filtered.push(...activeHabits.filter(h => !h.completions.includes(today)));
+  } else if (currentView === 'all') {
+    filtered = activeHabits;
+  } else if (currentView === 'archived') {
+    filtered = archivedHabits; 
+  }
+
+  if (activeHabits.length === 0 && currentView !== 'archived') {
     list.innerHTML = `
       <div class="empty-state">
-        <span class="empty-icon">◈</span>
+        <span class="empty-icon">🥺</span>
         <p class="empty-title">No habits yet</p>
         <p class="empty-desc">Start building your ritual. Add your first habit above.</p>
       </div>`;
     return;
   }
 
-  if (filtered.length === 0 && currentView === 'today') {
+  if (currentView === 'today' && filtered.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
         <span class="empty-icon">🎉</span>
         <p class="empty-title">All done for today!</p>
         <p class="empty-desc">You've completed every habit. Come back tomorrow.</p>
+      </div>`;
+    return;
+  }
+
+  if (currentView === 'archived' && filtered.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">📦</span>
+        <p class="empty-title">Vault is empty</p>
+        <p class="empty-desc">Habits you archive will show up here safely.</p>
       </div>`;
     return;
   }
@@ -325,6 +352,7 @@ function buildCard(h, index) {
             </p>
           </div>
         </div>
+        
         <button class="check-btn"
                 style="border-color:${h.color.dot};
                        background:${doneToday ? h.color.dot : 'transparent'};
@@ -343,12 +371,16 @@ function buildCard(h, index) {
       <p class="progress-lbl">${streak}/21 days to milestone</p>
 
       <div class="card-footer">
-        <button class="text-btn" onclick="toggleSkip('${h.id}')">
+        ${h.isArchived ? `
+          <button class="text-btn" onclick="unarchiveHabit('${h.id}')">↩️ Bring Back</button>
+       ` : `
+         <button class="text-btn" onclick="toggleSkip('${h.id}')">
           ${h.skips && h.skips.includes(todayStr()) ? '🚫 Unskip Day' : '⏳ Skip Day'}
         </button>
         <button class="text-btn" onclick="archiveHabit('${h.id}')">📦 Archive</button>
-        <button class="text-btn" onclick="resetStreak('${h.id}')">Reset</button>
-        <button class="text-btn danger" onclick="deleteHabit('${h.id}')">Delete</button>
+      `}
+      <button class="text-btn" onclick="resetStreak('${h.id}')">Reset</button>
+      <button class="text-btn danger" onclick="deleteHabit('${h.id}')">Delete</button>
       </div>
     </div>`;
 }
