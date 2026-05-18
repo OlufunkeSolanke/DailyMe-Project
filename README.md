@@ -23,7 +23,7 @@ Since DailyMe runs entirely client-side, you don't need to configure an active s
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/OlufunkeSolanke/DailyMe-Project.git
+   git clone [https://github.com/OlufunkeSolanke/DailyMe-Project.git](https://github.com/OlufunkeSolanke/DailyMe-Project.git)
 
 2. ## Navigate into the directory:
 cd DailyMe-Project
@@ -35,12 +35,18 @@ Simply double-click the index.html file to open it instantly inside any modern w
 ├── index.html        # Main application UI, modal layers, and asset templates
 ├── style.css         # UI design engine, custom theme variables, and responsive media controls
 ├── script.js        # Core logic engine, authentication module, and storage handlers
+├── LICENSE           # Proprietary copyright protection agreement
 └── dailymelogo.png   # Native application branding asset
+
+### 📂 Your Verified Repository File List:
+1. `index.html`
+2. `style.css`
+3. `script.js`
+4. `LICENSE`
+5. `dailymelogo.png`
 
 
 ## 📜 License
-
 All Rights Reserved. This project is proprietary intellectual property. Unauthorized copying, modification, or distribution of this file is strictly prohibited.
- 
-Created with focus and precision by Olufunke Solanke — Lead Developer & Architect at Frids Legal.
+
 Created with focus and precision by Olufunke Solanke — Lead Developer & Architect at Frids Legal.
